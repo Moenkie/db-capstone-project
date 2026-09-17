@@ -33,7 +33,7 @@ CREATE TABLE `bookings` (
   KEY `EmployeeID_idx` (`EmployeeID`),
   CONSTRAINT `fk_bookings_customer` FOREIGN KEY (`CustomerID`) REFERENCES `customers` (`CustomerID`),
   CONSTRAINT `fk_bookings_employee` FOREIGN KEY (`EmployeeID`) REFERENCES `employees` (`EmployeeID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42,6 +42,7 @@ CREATE TABLE `bookings` (
 
 LOCK TABLES `bookings` WRITE;
 /*!40000 ALTER TABLE `bookings` DISABLE KEYS */;
+INSERT INTO `bookings` VALUES (1,'2022-10-10',5,1,5),(2,'2022-11-12',3,3,7),(3,'2022-10-11',2,2,6),(4,'2022-10-23',2,1,7);
 /*!40000 ALTER TABLE `bookings` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -198,7 +199,7 @@ CREATE TABLE `orders` (
   KEY `MenuID_idx` (`MenuID`),
   CONSTRAINT `fk_orders_customer` FOREIGN KEY (`CustomerID`) REFERENCES `customers` (`CustomerID`),
   CONSTRAINT `fk_orders_menu` FOREIGN KEY (`MenuID`) REFERENCES `menu` (`MenuID`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -232,6 +233,113 @@ SET character_set_client = @saved_cs_client;
 --
 -- Dumping routines for database 'littlelemondb'
 --
+/*!50003 DROP PROCEDURE IF EXISTS `AddBooking` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`User1`@`%` PROCEDURE `AddBooking`(IN booking_date DATE, IN table_number INT, customer_id INT)
+BEGIN
+	DECLARE booking_status VARCHAR(80);
+    
+    IF EXISTS 
+    (
+        SELECT 1
+        FROM bookings
+        WHERE Date = booking_date
+        AND tablenumber = table_number
+    ) THEN
+        SET booking_status = CONCAT('Table ', table_number, ' is already booked - Booking Cancelled.');
+    ELSE
+		INSERT INTO bookings (date, tablenumber, customerid, employeeid)
+        VALUES
+        (booking_date, table_number, customer_id, ELT(FLOOR(1 + RAND() * 3), 5, 6, 7));
+        SET booking_status = 'New booking added';
+    END IF;
+    SELECT booking_status AS Confirmation;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `AddValidBooking` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`User1`@`%` PROCEDURE `AddValidBooking`(IN booking_date DATE, IN table_number INT)
+BEGIN
+	DECLARE booking_status VARCHAR(80);
+	START TRANSACTION;
+    
+    IF EXISTS 
+    (
+        SELECT 1
+        FROM bookings
+        WHERE Date = booking_date
+        AND tablenumber = table_number
+    ) THEN
+		ROLLBACK;
+        SET booking_status = CONCAT('Table ', table_number, ' is already booked - Booking Cancelled.');
+    ELSE
+		INSERT INTO bookings (date, tablenumber, employeeid)
+        VALUES
+        (booking_date, table_number, ELT(FLOOR(1 + RAND() * 3), 5, 6, 7));
+        COMMIT;
+        SET booking_status = CONCAT('Table ', table_number, ' Booked');
+    END IF;
+    SELECT booking_status AS BookingStatus;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `CancelBooking` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`User1`@`%` PROCEDURE `CancelBooking`(IN booking_id INT)
+BEGIN
+	DECLARE booking_status VARCHAR(80);
+    
+    IF EXISTS 
+    (
+        SELECT 1
+        FROM bookings
+        WHERE bookingid = booking_id
+    ) THEN
+		DELETE 
+        FROM bookings
+        WHERE bookingid = Booking_id;
+        SET booking_status = CONCAT('Booking ', booking_id, ' cancelled.');
+    ELSE
+        SET booking_status = 'Bookindg does not exist';
+    END IF;
+    SELECT booking_status AS Confirmation;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `CancelOrder` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -242,14 +350,45 @@ SET character_set_client = @saved_cs_client;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`User1`@`%` PROCEDURE `CancelOrder`(IN cancel_order INT, OUT confirmation_message VARCHAR(50))
+CREATE DEFINER=`User1`@`%` PROCEDURE `CancelOrder`(IN cancel_order INT)
 BEGIN
 DELETE
 FROM orders
 WHERE orderid = cancel_order;
 
-SET confirmation_message = CONCAT('Order ', cancel_order, ' is cancelled');
+SELECT CONCAT('Order ', cancel_order, ' is cancelled') AS Confirmation;
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `CheckBooking` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`User1`@`%` PROCEDURE `CheckBooking`(IN booking_date DATE, IN table_number INT)
+BEGIN
+    DECLARE booking_status VARCHAR(30);
+    IF EXISTS 
+    (
+        SELECT 1
+        FROM bookings
+        WHERE Date = booking_date
+        AND tablenumber = table_number
+    ) THEN
+        SET booking_status = CONCAT('Table ', table_number, ' is already booked');
+    ELSE
+        SET booking_status = CONCAT('Table ', table_number, ' is available');
+    END IF;
+    SELECT booking_status AS BookingStatus;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -270,6 +409,40 @@ CREATE DEFINER=`User1`@`%` PROCEDURE `GetMaxQuantity`()
 BEGIN
 SELECT MAX(Quantity) AS MAX_QUANTITY
 FROM orders;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `UpdateBooking` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`User1`@`%` PROCEDURE `UpdateBooking`(IN booking_id INT, IN new_booking_date DATE)
+BEGIN
+	DECLARE booking_status VARCHAR(80);
+    
+    IF EXISTS 
+    (
+        SELECT 1
+        FROM bookings
+        WHERE bookingid = booking_id
+    ) THEN
+		UPDATE bookings
+        SET date = new_booking_date
+        WHERE bookingid = Booking_id;
+        SET booking_status = CONCAT('Booking ', booking_id, ' updated.');
+    ELSE
+        SET booking_status = 'Bookindg does not exist';
+    END IF;
+    SELECT booking_status AS Confirmation;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -304,4 +477,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-15 22:33:16
+-- Dump completed on 2026-09-17 18:53:23
